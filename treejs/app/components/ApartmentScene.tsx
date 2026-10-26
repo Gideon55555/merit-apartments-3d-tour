@@ -132,8 +132,14 @@ export default function ApartmentScene({ def, onReady, onError, onContextLost }:
     // --- Scene ---
     const scene = new THREE.Scene();
     const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-    const { materials, dispose: disposeMaterials } = createMaterials(anisotropy);
+    // Photo textures load asynchronously; redraw as each arrives
+    const { materials, dispose: disposeMaterials } = createMaterials(anisotropy, () => { dirty = true; });
     const kit = new Kit(materials, lowTier);
+    // glTF models arrive after the first frame: redraw and re-render the static shadows
+    kit.onAsync = () => {
+      dirty = true;
+      renderer.shadowMap.needsUpdate = true;
+    };
     const apartment = def.build(kit);
     scene.add(apartment);
     const env = setupEnvironment(scene, renderer, def.bounds);
@@ -202,6 +208,7 @@ export default function ApartmentScene({ def, onReady, onError, onContextLost }:
     // Intro: paper plan fades while the model extrudes out of it
     let paper: Awaited<ReturnType<typeof createPaperPlan>> | null = null;
     let lastRise = -1;
+    let shadowSkip = 0;
     const lightBase = kit.lights.map((l) => l.intensity);
     const smoothstep = (a: number, b: number, x: number) => {
       const t = THREE.MathUtils.clamp((x - a) / (b - a), 0, 1);
@@ -255,7 +262,10 @@ export default function ApartmentScene({ def, onReady, onError, onContextLost }:
         env.setGrowth(rise);
         // Room lights come on as the walls rise (no hot spots on the flat plan)
         kit.lights.forEach((light, i) => { light.intensity = lightBase[i] * rise; });
-        renderer.shadowMap.needsUpdate = true;
+        // Re-rendering the 2048² shadow map every frame stutters on weak
+        // GPUs: refresh it every few frames while rising, and exactly at the ends
+        shadowSkip = (shadowSkip + 1) % 5;
+        if (shadowSkip === 0 || rise === 0 || rise === 1) renderer.shadowMap.needsUpdate = true;
       }
 
       const sample = rig.sample(u, pos, look);

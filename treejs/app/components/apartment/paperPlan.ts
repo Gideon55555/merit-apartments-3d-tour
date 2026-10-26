@@ -22,7 +22,8 @@ const RES = 1.5;
 
 const INK = '#23352e';
 const INK_SOFT = 'rgba(35, 53, 46, 0.7)';
-const FONT = "'Inter', 'Helvetica Neue', Arial, sans-serif";
+/** Canvas font stack; picks up the self-hosted Inter (next/font) at draw time */
+let FONT = "'Helvetica Neue', Arial, sans-serif";
 
 const px = (x: number) => (x - SHEET.x0) * PX_PER_M;
 const py = (z: number) => (z - SHEET.z0) * PX_PER_M;
@@ -572,6 +573,8 @@ function shadowCanvas() {
 
 export async function createPaperPlan(spec: PaperSpec, anisotropy: number) {
   await document.fonts?.ready.catch(() => undefined);
+  const inter = getComputedStyle(document.documentElement).getPropertyValue('--font-inter').trim();
+  if (inter) FONT = `${inter}, 'Helvetica Neue', Arial, sans-serif`;
 
   const canvas = drawSheet(spec);
   const group = new THREE.Group();

@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import type { Materials } from './materials';
 import { seededRandom } from './textures';
+import { cushionGeometry, drapeGeometry, pillowGeometry } from './soft';
 
 // ============================================================
 // GEOMETRY KIT
@@ -12,6 +15,12 @@ import { seededRandom } from './textures';
 // ============================================================
 
 export const WALL_H = 2.7;
+
+/** Resolves when the browser is idle (or after a short delay) */
+const idle = () => new Promise<void>((resolve) => {
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(() => resolve(), { timeout: 2500 });
+  else setTimeout(resolve, 800);
+});
 
 export interface MeshOpts {
   rotX?: number;
@@ -186,6 +195,75 @@ export class Kit {
     return this.box(parent, x1 - x0, y1 - y0, z1 - z0, mat, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, o);
   }
 
+  /** Called when an async asset (glTF model) lands, so the scene redraws and re-shadows */
+  onAsync: () => void = () => undefined;
+  private models = new Map<string, Promise<THREE.Object3D>>();
+  private loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+
+  /**
+   * Place a glTF model (loaded once, cloned per use) standing on (x, y, z),
+   * scaled to the given height. It appears when loaded.
+   */
+  model(parent: THREE.Object3D, url: string, x: number, y: number, z: number, height: number, rotY = 0) {
+    let pending = this.models.get(url);
+    if (!pending) {
+      // Fetch after the first frames so it never competes with the initial load
+      pending = idle().then(() => this.loader.loadAsync(url)).then((gltf) => {
+        gltf.scene.traverse((o) => {
+          const mesh = o as THREE.Mesh;
+          if (mesh.isMesh) {
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            this.disposables.push(mesh.geometry);
+            const mats = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) as THREE.MeshStandardMaterial[];
+            for (const mt of mats) {
+              this.disposables.push(mt);
+              for (const t of [mt.map, mt.normalMap, mt.roughnessMap, mt.metalnessMap, mt.aoMap]) if (t) this.disposables.push(t);
+            }
+          }
+        });
+        return gltf.scene;
+      });
+      this.models.set(url, pending);
+    }
+    pending.then((src) => {
+      const obj = src.clone(true);
+      const box = new THREE.Box3().setFromObject(src);
+      const s = height / Math.max(0.001, box.max.y - box.min.y);
+      obj.scale.setScalar(s);
+      obj.rotation.y = rotY;
+      const cx = (box.min.x + box.max.x) / 2;
+      const cz = (box.min.z + box.max.z) / 2;
+      obj.position.set(x - cx * s, y - box.min.y * s, z - cz * s);
+      parent.add(obj);
+      obj.updateMatrixWorld(true);
+      this.onAsync();
+    }).catch(() => undefined);
+  }
+
+  /** Plush cushion centred at (x, y, z): domed top, bowed sides */
+  cushion(parent: THREE.Object3D, w: number, h: number, d: number, r: number, mat: THREE.Material, x: number, y: number, z: number, o?: MeshOpts & { puff?: number }) {
+    const puff = o?.puff ?? Math.min(0.04, h * 0.18);
+    const g = this.cached(`cu${w}|${h}|${d}|${r}|${puff}`, () => cushionGeometry(w, h, d, r, puff));
+    return this.mesh(parent, g, mat, x, y, z, o);
+  }
+
+  cushionBlock(parent: THREE.Object3D, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, r: number, mat: THREE.Material, o?: MeshOpts & { puff?: number }) {
+    return this.cushion(parent, x1 - x0, y1 - y0, z1 - z0, r, mat, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, o);
+  }
+
+  /** Throw pillow standing in its local XY plane (rotate to lean it) */
+  pillow(parent: THREE.Object3D, w: number, h: number, t: number, mat: THREE.Material, x: number, y: number, z: number, o?: MeshOpts) {
+    const g = this.cached(`pi${w}|${h}|${t}`, () => pillowGeometry(w, h, t));
+    return this.mesh(parent, g, mat, x, y, z, o);
+  }
+
+  /** Cloth draped over a top surface; see drapeGeometry for the origin */
+  drape(parent: THREE.Object3D, w: number, l: number, drop: number, seed: number, mat: THREE.Material, x: number, y: number, z: number, o?: MeshOpts & { wrinkle?: number }) {
+    const g = this.own(drapeGeometry(w, l, drop, seed, o?.wrinkle));
+    return this.mesh(parent, g, mat, x, y, z, o);
+  }
+
   /** Rounded box centred at (x, y, z) — cushions, mattresses, appliances */
   rbox(parent: THREE.Object3D, w: number, h: number, d: number, r: number, mat: THREE.Material, x: number, y: number, z: number, o?: MeshOpts) {
     const radius = Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001);
@@ -290,11 +368,11 @@ export class Kit {
         const t = thick / 2;
         const sk = { cast: false };
         if (along === 'x') {
-          this.block(parent, a, b, 0, 0.08, line - t - 0.012, line - t, this.m.trim, sk);
-          this.block(parent, a, b, 0, 0.08, line + t, line + t + 0.012, this.m.trim, sk);
+          this.block(parent, a, b, 0, 0.08, line - t - 0.012, line - t, this.m.doorDark, sk);
+          this.block(parent, a, b, 0, 0.08, line + t, line + t + 0.012, this.m.doorDark, sk);
         } else {
-          this.block(parent, line - t - 0.012, line - t, 0, 0.08, a, b, this.m.trim, sk);
-          this.block(parent, line + t, line + t + 0.012, 0, 0.08, a, b, this.m.trim, sk);
+          this.block(parent, line - t - 0.012, line - t, 0, 0.08, a, b, this.m.doorDark, sk);
+          this.block(parent, line + t, line + t + 0.012, 0, 0.08, a, b, this.m.doorDark, sk);
         }
       }
     };
@@ -339,7 +417,7 @@ export class Kit {
    * leaf points from the hinge when shut (along the wall), `open` the
    * direction it points when open (into the room).
    */
-  door(parent: THREE.Object3D, hinge: P2, width: number, closed: Dir, open: Dir, mat: THREE.Material = this.m.trim) {
+  door(parent: THREE.Object3D, hinge: P2, width: number, closed: Dir, open: Dir, mat: THREE.Material = this.m.doorDark) {
     const [hx, hz] = hinge;
     const [ox, oz] = DIR_VEC[open];
     const [cx, cz] = DIR_VEC[closed];
@@ -370,10 +448,32 @@ export class Kit {
     this.plan.push({ k: 'arc', c: [hx, hz], r: width, a0: Math.min(a0, a1), a1: Math.max(a0, a1) });
   }
 
+  /**
+   * Shaker cabinet front on a carcass face: a thin door slab with a raised
+   * frame around a recessed centre panel. along='x' runs along X with the
+   * face at Z=at; along='z' runs along Z with the face at X=at. facing is
+   * the sign of the normal pointing into the room.
+   */
+  shaker(parent: THREE.Object3D, along: Axis, at: number, facing: 1 | -1, a0: number, a1: number, y0: number, y1: number, mat: THREE.Material) {
+    const g = 0.003; // gap between fronts
+    const rail = Math.min(0.065, (a1 - a0) / 5, (y1 - y0) / 5);
+    const put = (u0: number, u1: number, v0: number, v1: number, d0: number, d1: number) => {
+      const p0 = at + facing * d0;
+      const p1 = at + facing * d1;
+      if (along === 'x') this.block(parent, u0, u1, v0, v1, Math.min(p0, p1), Math.max(p0, p1), mat);
+      else this.block(parent, Math.min(p0, p1), Math.max(p0, p1), v0, v1, u0, u1, mat);
+    };
+    put(a0 + g, a1 - g, y0 + g, y1 - g, 0, 0.012); // recessed panel
+    put(a0 + g, a1 - g, y1 - g - rail, y1 - g, 0.012, 0.02); // top rail
+    put(a0 + g, a1 - g, y0 + g, y0 + g + rail, 0.012, 0.02); // bottom rail
+    put(a0 + g, a0 + g + rail, y0 + g + rail, y1 - g - rail, 0.012, 0.02); // stiles
+    put(a1 - g - rail, a1 - g, y0 + g + rail, y1 - g - rail, 0.012, 0.02);
+  }
+
   /** Painted timber lining + architrave around a door opening */
   doorTrim(parent: THREE.Object3D, along: Axis, line: number, thick: number, a: number, b: number, head: number) {
     const t = thick / 2 + 0.012;
-    const m = this.m.trim;
+    const m = this.m.doorDark;
     if (along === 'x') {
       this.block(parent, a - 0.06, a + 0.02, 0, head, line - t, line + t, m);
       this.block(parent, b - 0.02, b + 0.06, 0, head, line - t, line + t, m);
@@ -509,6 +609,35 @@ export class Kit {
       this.shadowTexs.set(kind, t);
     }
     return t;
+  }
+
+  /**
+   * Dropped perimeter ceiling with a hidden LED strip, as in the design
+   * renders. Built from downward / inward-facing planes only, so it
+   * disappears in the dollhouse view from above.
+   */
+  cove(parent: THREE.Object3D, x0: number, z0: number, x1: number, z1: number, depth = 0.32, drop = 0.18) {
+    const y = WALL_H - drop;
+    const m = this.m;
+    const band = (bx0: number, bz0: number, bx1: number, bz1: number) =>
+      this.floor(parent, bx0, bx1, bz0, bz1, y, m.ceiling, 4, { down: true, cast: false });
+    band(x0, z0, x1, z0 + depth);
+    band(x0, z1 - depth, x1, z1);
+    band(x0, z0 + depth, x0 + depth, z1 - depth);
+    band(x1 - depth, z0 + depth, x1, z1 - depth);
+    // Inner faces + glowing strip just below the ceiling
+    const ix0 = x0 + depth;
+    const iz0 = z0 + depth;
+    const ix1 = x1 - depth;
+    const iz1 = z1 - depth;
+    const face = (along: Axis, a0: number, a1: number, at: number, facing: 1 | -1) => {
+      this.panel(parent, along, a0, a1, y, WALL_H, at, facing, m.ceiling, 4, { cast: false });
+      this.panel(parent, along, a0, a1, WALL_H - 0.035, WALL_H - 0.01, at + facing * 0.002, facing, m.ledStrip, 4, { cast: false, receive: false });
+    };
+    face('x', ix0, ix1, iz0, 1);
+    face('x', ix0, ix1, iz1, -1);
+    face('z', iz0, iz1, ix0, 1);
+    face('z', iz0, iz1, ix1, -1);
   }
 
   pointLight(parent: THREE.Object3D, x: number, y: number, z: number, color: THREE.ColorRepresentation, intensity: number, optional = false) {

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import { Kit, WALL_H } from './kit';
+import { PLANT_MODEL, FACE, coffeeTable, wardrobe, stool, toilet, vanity, shower, chandelier, sconce, slats, glassBlocks } from './furniture';
 import { FLOOR_TILE, BATH_TILE, SPLASH_TILE } from './textures';
 
 // ============================================================
@@ -54,10 +54,9 @@ function contactShadows(kit: Kit, root: THREE.Group) {
     // kitchen
     [4.65, 6.5, 6.0, 6.6, 0.4], [5.9, 6.5, 4.6, 6.0, 0.4], [4.2, 4.88, 4.22, 5.48, 0.5],
     // bedroom
-    [1.0, 2.84, 0.0, 2.25, 0.55], [0.5, 0.94, 0.06, 0.46, 0.45], [2.9, 3.34, 0.06, 0.46, 0.45],
-    [3.48, 4.04, 0.04, 2.0, 0.45], [1.35, 2.5, 2.34, 2.66, 0.4],
-    // bathroom
-    [4.16, 4.66, 0.85, 1.65, 0.28], [5.1, 5.75, 0.0, 0.18, 0.4], [5.85, 6.48, 0.04, 0.55, 0.4],
+    [1.0, 2.84, 0.0, 2.25, 0.55], [0.5, 0.94, 0.06, 0.46, 0.25], [2.9, 3.34, 0.06, 0.46, 0.25],
+    // living: media unit, shelving
+    [2.95, 3.5, 3.21, 3.6, 0.4],
     // balconies
     [-1.06, -0.64, 0.68, 1.08, 0.35], [-1.06, -0.64, 1.82, 2.22, 0.35], [-1.3, -0.45, 4.55, 5.35, 0.45],
   ];
@@ -65,8 +64,7 @@ function contactShadows(kit: Kit, root: THREE.Group) {
 
   const round: [number, number, number, number][] = [
     // [x, z, radius, strength]
-    [2.05, 4.65, 0.55, 0.5], [3.25, 3.5, 0.24, 0.45], [3.3, 6.3, 0.16, 0.45], [0.62, 4.42, 0.17, 0.4],
-    [3.97, 4.55, 0.19, 0.4], [3.97, 5.15, 0.19, 0.4], [0.4, 1.15, 0.17, 0.4], [5.43, 0.44, 0.22, 0.4],
+    [3.3, 6.3, 0.22, 0.45], [0.4, 1.15, 0.17, 0.4],
     [-0.85, 1.45, 0.3, 0.45], [-0.8, 0.2, 0.2, 0.45], [-0.45, 2.75, 0.15, 0.45], [-0.8, 6.45, 0.2, 0.45],
     [-0.5, 3.6, 0.18, 0.45],
   ];
@@ -81,7 +79,7 @@ function structure(kit: Kit, root: THREE.Group) {
 
   kit.block(root, -1.5, 6.7, -0.3, -0.002, -0.2, 6.8, m.concrete);
   kit.floor(root, 0, 6.5, 0, 6.6, 0, m.oakFloor, FLOOR_TILE);
-  kit.floor(root, 4.16, 6.5, 0, 1.94, 0.002, m.bathTile, BATH_TILE);
+  kit.floor(root, 4.16, 6.5, 0, 1.94, 0.002, m.oakFloor, FLOOR_TILE);
   kit.floor(root, -1.5, -0.2, -0.2, 6.8, 0, m.deck, 1.6);
 
   // Exterior walls
@@ -109,7 +107,7 @@ function structure(kit: Kit, root: THREE.Group) {
   kit.floor(root, 0, 6.5, 0, 6.6, WALL_H, m.ceiling, 4, { down: true, cast: true, name: 'ceiling' });
 
   // Bedroom door, hinged on the south jamb and folded back towards the partition
-  kit.block(root, 3.26, 4.03, 0.01, 2.08, 2.94, 2.98, m.trim);
+  kit.block(root, 3.26, 4.03, 0.01, 2.08, 2.94, 2.98, m.doorDark);
   for (const z of [2.925, 2.995]) {
     kit.block(root, 3.3, 3.42, 0.99, 1.01, z - 0.008, z + 0.008, m.blackMetal);
   }
@@ -130,69 +128,74 @@ function structure(kit: Kit, root: THREE.Group) {
 function living(kit: Kit, root: THREE.Group) {
   const m = kit.m;
 
-  kit.rblock(root, 0.6, 3.3, 0, 0.012, 3.95, 6.0, 0.005, m.rugLiving, { cast: false });
+  // Wall-to-wall-style carpet under the seating
+  kit.rblock(root, 0.45, 3.4, 0, 0.012, 3.9, 6.45, 0.005, m.rugLiving, { cast: false });
 
-  // L-shaped sofa, back to the south wall, chaise along the glazing
+  // Curved-edge cream L-sofa, back to the south wall, chaise along the glazing
   const S = m.sofa;
-  kit.block(root, 0.25, 3.0, 0.06, 0.24, 5.72, 6.55, S);
-  kit.block(root, 0.25, 1.12, 0.06, 0.24, 4.8, 5.72, S);
-  for (const [x, z] of [[0.3, 4.85], [1.07, 4.85], [0.3, 6.5], [2.95, 6.5], [2.95, 5.77]]) {
-    kit.block(root, x - 0.03, x + 0.03, 0, 0.06, z - 0.03, z + 0.03, m.blackMetal);
+  // Upholstered plinth, set just above the floor
+  kit.cushionBlock(root, 0.25, 3.0, 0.04, 0.26, 5.72, 6.56, 0.06, S, { puff: 0.008 });
+  kit.cushionBlock(root, 0.25, 1.12, 0.04, 0.26, 4.8, 5.74, 0.06, S, { puff: 0.008 });
+  // Back and arms
+  kit.cushionBlock(root, 0.25, 3.0, 0.04, 0.8, 6.38, 6.58, 0.09, S, { puff: 0.012 });
+  kit.cushionBlock(root, 2.78, 3.0, 0.04, 0.62, 5.7, 6.58, 0.1, S, { puff: 0.015 });
+  kit.cushionBlock(root, 0.25, 0.45, 0.04, 0.62, 4.8, 6.58, 0.1, S, { puff: 0.015 });
+  // Plush seat cushions
+  kit.cushionBlock(root, 0.45, 1.12, 0.25, 0.48, 4.82, 6.38, 0.08, S, { puff: 0.04 });
+  kit.cushionBlock(root, 1.13, 1.955, 0.25, 0.48, 5.74, 6.38, 0.08, S, { puff: 0.04 });
+  kit.cushionBlock(root, 1.965, 2.78, 0.25, 0.48, 5.74, 6.38, 0.08, S, { puff: 0.04 });
+  // Loose back cushions leaning against the back
+  for (const [a, b] of [[0.45, 1.12], [1.13, 1.955], [1.965, 2.78]]) {
+    kit.cushion(root, b - a, 0.46, 0.2, 0.09, S, (a + b) / 2, 0.7, 6.27, { rotX: 0.16, puff: 0.03 });
   }
-  kit.rblock(root, 0.25, 3.0, 0.06, 0.76, 6.42, 6.58, 0.05, S); // back
-  kit.rblock(root, 2.8, 3.0, 0.06, 0.6, 5.7, 6.58, 0.06, S); // right arm
-  kit.rblock(root, 0.25, 0.42, 0.06, 0.6, 4.8, 6.58, 0.06, S); // left arm
-  kit.rblock(root, 0.42, 1.12, 0.24, 0.46, 4.82, 6.4, 0.07, S); // chaise cushion
-  kit.rblock(root, 1.13, 1.96, 0.24, 0.46, 5.74, 6.4, 0.07, S);
-  kit.rblock(root, 1.97, 2.79, 0.24, 0.46, 5.74, 6.4, 0.07, S);
-  for (const [a, b] of [[0.42, 1.12], [1.13, 1.96], [1.97, 2.79]]) {
-    kit.rbox(root, b - a, 0.44, 0.2, 0.08, S, (a + b) / 2, 0.67, 6.3, { rotX: 0.15 });
+  // Throw pillows
+  kit.pillow(root, 0.46, 0.46, 0.17, m.pillowSage, 0.78, 0.7, 6.08, { rotX: 0.32, rotY: 0.18 });
+  kit.pillow(root, 0.42, 0.42, 0.16, m.pillowCream, 1.62, 0.69, 6.08, { rotX: 0.3, rotY: -0.1 });
+  kit.pillow(root, 0.46, 0.46, 0.17, m.pillowRust, 2.5, 0.7, 6.08, { rotX: 0.32, rotY: 0.15 });
+  kit.pillow(root, 0.4, 0.4, 0.15, m.pillowCream, 0.62, 0.66, 5.05, { rotX: -0.25, rotY: Math.PI / 2 + 0.2 });
+
+  coffeeTable(kit, root, 2.05, 4.65, 0, 0.62, 0.36);
+
+  // Marble feature wall: book-matched slabs over a black slatted band
+  kit.panel(root, 'x', 0.3, 2.9, 0.95, 2.52, 3.212, 1, m.marbleWall, 1.3);
+  for (const x of [1.17, 2.03]) kit.block(root, x - 0.003, x + 0.003, 0.95, 2.52, 3.212, 3.216, m.doorDark, { cast: false });
+  slats(kit, root, 'x', 3.21, 1, 0.3, 2.9, 0.58, 0.95);
+  // Low black media unit with an LED-lit edge
+  kit.block(root, 0.35, 2.85, 0.14, 0.56, 3.21, 3.62, m.doorDark);
+  kit.block(root, 0.45, 2.75, 0.115, 0.125, 3.3, 3.58, m.ledStrip, { cast: false });
+  kit.rblock(root, 0.88, 2.33, 1.12, 1.94, 3.215, 3.245, 0.01, m.screen);
+  kit.block(root, 0.55, 0.85, 0.56, 0.6, 3.3, 3.5, m.bookD);
+  kit.block(root, 0.57, 0.83, 0.6, 0.63, 3.32, 3.48, m.bookA);
+  kit.tableLamp(root, 2.55, 0.56, 3.42);
+
+  // Tall black shelving with lit shelves
+  kit.block(root, 2.95, 2.98, 0, 2.52, 3.21, 3.6, m.doorDark);
+  kit.block(root, 3.47, 3.5, 0, 2.52, 3.21, 3.6, m.doorDark);
+  kit.block(root, 2.95, 3.5, 0, 2.52, 3.21, 3.23, m.doorDark);
+  for (const y of [0.0, 0.55, 1.1, 1.65, 2.2, 2.5]) {
+    kit.block(root, 2.98, 3.47, y, y + 0.025, 3.23, 3.6, m.doorDark);
+    if (y > 0 && y < 2.5) kit.block(root, 3.0, 3.45, y - 0.012, y - 0.004, 3.5, 3.58, m.ledStrip, { cast: false });
   }
-  kit.rbox(root, 0.44, 0.44, 0.13, 0.06, m.pillowSage, 0.75, 0.66, 6.1, { rotX: 0.3, rotY: 0.2 });
-  kit.rbox(root, 0.42, 0.42, 0.13, 0.06, m.pillowCream, 1.62, 0.66, 6.1, { rotX: 0.3, rotY: -0.1 });
-  kit.rbox(root, 0.44, 0.44, 0.13, 0.06, m.pillowRust, 2.5, 0.66, 6.1, { rotX: 0.3, rotY: 0.15 });
-  kit.rblock(root, 0.48, 1.06, 0.46, 0.49, 4.95, 5.4, 0.012, m.throwRust);
+  kit.block(root, 3.02, 3.2, 0.575, 0.82, 3.3, 3.5, m.bookC);
+  kit.block(root, 3.22, 3.4, 1.125, 1.3, 3.3, 3.5, m.bookB);
+  kit.block(root, 3.05, 3.35, 1.675, 1.72, 3.3, 3.52, m.bookD);
+  kit.art(root, 'x', 3.24, 1, 3.22, 2.0, 0.34, 0.6, m.artB, m.doorDark);
 
-  // Oval coffee table
-  const top = kit.cyl(root, 0.65, 0.65, 0.035, m.oak, 2.05, 0.4, 4.65, { segments: 64 });
-  top.scale.z = 0.55;
-  const base = kit.cyl(root, 0.42, 0.42, 0.38, m.walnut, 2.05, 0.19, 4.65, { segments: 48 });
-  base.scale.z = 0.5;
-  kit.block(root, 1.7, 1.98, 0.4175, 0.445, 4.52, 4.72, m.bookD);
-  kit.block(root, 1.72, 1.95, 0.445, 0.47, 4.54, 4.7, m.bookB);
-  kit.lathe(root, 'vase', [[0, 0], [0.05, 0], [0.07, 0.06], [0.05, 0.16], [0.03, 0.2], [0.035, 0.22], [0, 0.22]], m.ceramic, 2.42, 0.4175, 4.7);
+  // Glass-block screen beside the shelving (stops short of the walkway)
+  glassBlocks(kit, root, 'z', 3.56, 3.62, 3.8, 2.5);
 
-  // Floating media unit + TV on the partition wall
-  kit.block(root, 0.35, 2.85, 0.22, 0.6, 3.21, 3.6, m.walnut);
-  for (let i = 0; i < 4; i++) {
-    const a = 0.35 + i * 0.625;
-    kit.block(root, a + 0.004, a + 0.621, 0.224, 0.596, 3.6, 3.612, m.walnut);
-  }
-  kit.rblock(root, 0.88, 2.33, 0.93, 1.75, 3.215, 3.245, 0.01, m.screen);
-  kit.block(root, 0.55, 0.85, 0.6, 0.64, 3.3, 3.5, m.bookC);
-  kit.block(root, 0.57, 0.83, 0.64, 0.67, 3.32, 3.48, m.bookA);
-  kit.plant(root, 2.6, 0.6, 3.42, 'bush', 0.26, 4, m.potStone);
+  // Starburst chandelier over the coffee table
+  chandelier(kit, root, 1.95, 2.25, 4.75);
 
-  // Plants
-  kit.plant(root, 3.25, 0, 3.5, 'fiddle', 1.35, 7);
-  kit.plant(root, 3.3, 0, 6.3, 'snake', 0.9, 12, m.potBlack);
-
-  // Arc floor lamp over the coffee table
-  kit.cyl(root, 0.17, 0.17, 0.04, m.quartz, 0.62, 0.02, 4.42);
-  kit.tube(root, new THREE.QuadraticBezierCurve3(
-    new THREE.Vector3(0.62, 0.04, 4.42), new THREE.Vector3(0.7, 2.4, 4.5), new THREE.Vector3(1.75, 1.9, 4.62),
-  ), 0.012, m.brass);
-  kit.dome(root, 0.17, m.pendant, 1.75, 1.72, 4.62);
-  kit.sphere(root, 0.04, m.bulb, 1.75, 1.74, 4.62, undefined, { cast: false });
-  kit.pointLight(root, 1.75, 1.6, 4.62, '#ffc98a', 1.2, true);
-
-  // Art above the sofa
-  kit.art(root, 'x', 6.6, -1, 1.6, 1.58, 1.1, 0.75, m.artA, m.oak);
-
-  // Sheer curtains drawn back at the glazing
+  // Palm by the sofa end, heavy linen drapes at both ends of the glazing
+  kit.model(root, PLANT_MODEL, 3.3, 0, 6.3, 1.15, 0.6);
   kit.curtain(root, 0.09, 5.88, 6.28, 2.38);
+  kit.curtain(root, 0.09, 3.45, 3.82, 2.38);
 
-  kit.pointLight(root, 1.8, 2.0, 4.9, '#ffd6a5', 3.5);
+  // Cove ceiling with hidden LED
+  kit.cove(root, 0, 3.21, 6.5, 6.6);
+
+  kit.pointLight(root, 1.8, 2.0, 4.9, '#ffd6a5', 3);
 }
 
 // ------------------------------------------------------------
@@ -203,34 +206,46 @@ function kitchen(kit: Kit, root: THREE.Group) {
 
   // South run: X 4.65–6.5, Z 6.0–6.6
   kit.block(root, 4.7, 6.5, 0, 0.1, 6.08, 6.6, m.sageDark);
-  kit.block(root, 4.65, 6.5, 0.1, 0.88, 6.02, 6.6, m.sage);
+  // Carcass, stepped down under the sink basin
+  kit.block(root, 4.65, 5.95, 0.1, 0.88, 6.02, 6.6, m.sage);
+  kit.block(root, 6.4, 6.5, 0.1, 0.88, 6.02, 6.6, m.sage);
+  kit.block(root, 5.95, 6.4, 0.1, 0.69, 6.02, 6.6, m.sage);
+  kit.block(root, 5.95, 6.4, 0.69, 0.88, 6.02, 6.08, m.sage);
+  kit.block(root, 5.95, 6.4, 0.69, 0.88, 6.45, 6.6, m.sage);
+  // Shaker fronts; the built-in oven sits under the hob
   const southFronts: [number, number, number, number][] = [
-    [4.66, 5.06, 0.11, 0.87], [5.08, 5.48, 0.11, 0.48], [5.08, 5.48, 0.5, 0.87], [5.5, 5.88, 0.11, 0.87],
+    [4.65, 4.9, 0.11, 0.87], [5.48, 5.88, 0.11, 0.87], [4.9, 5.48, 0.74, 0.87],
   ];
   for (const [x0, x1, y0, y1] of southFronts) {
-    kit.block(root, x0, x1, y0, y1, 6.0, 6.02, m.sage);
-    kit.block(root, x0 + 0.08, x1 - 0.08, y1 - 0.06, y1 - 0.045, 5.985, 6.0, m.brass, { cast: false });
+    kit.shaker(root, 'x', 6.02, -1, x0, x1, y0, y1, m.sage);
+    kit.block(root, x0 + 0.06, x1 - 0.06, y1 - 0.07, y1 - 0.055, 5.98, 5.995, m.blackMetal, { cast: false });
   }
-  kit.block(root, 4.63, 6.5, 0.88, 0.92, 5.98, 6.6, m.quartz);
+  kit.block(root, 4.91, 5.47, 0.12, 0.72, 6.0, 6.02, m.cooktop);
+  kit.block(root, 4.96, 5.42, 0.3, 0.62, 5.997, 6.0, m.screen, { cast: false });
+  kit.cyl(root, 0.01, 0.01, 0.44, m.chrome, 5.19, 0.67, 5.975, { rotZ: Math.PI / 2, segments: 10, cast: false });
+  kit.block(root, 4.63, 5.95, 0.88, 0.92, 5.98, 6.6, m.quartz);
+  kit.block(root, 6.4, 6.5, 0.88, 0.92, 5.98, 6.6, m.quartz);
+  kit.block(root, 5.95, 6.4, 0.88, 0.92, 5.98, 6.08, m.quartz);
+  kit.block(root, 5.95, 6.4, 0.88, 0.92, 6.45, 6.6, m.quartz);
 
   // East run: X 5.9–6.5, Z 5.25–6.0
   kit.block(root, 5.98, 6.5, 0, 0.1, 5.25, 6.0, m.sageDark);
   kit.block(root, 5.92, 6.5, 0.1, 0.88, 5.25, 6.02, m.sage);
-  kit.block(root, 5.9, 5.92, 0.11, 0.87, 5.27, 5.98, m.sage);
-  kit.block(root, 5.885, 5.9, 0.81, 0.825, 5.4, 5.85, m.brass, { cast: false });
+  kit.shaker(root, 'z', 5.92, -1, 5.27, 5.98, 0.11, 0.87, m.sage);
+  kit.block(root, 5.885, 5.9, 0.81, 0.825, 5.4, 5.85, m.blackMetal, { cast: false });
   kit.block(root, 5.88, 6.5, 0.88, 0.92, 5.25, 5.98, m.quartz);
 
-  // Integrated fridge-freezer column
-  kit.block(root, 5.92, 6.5, 0, 2.25, 4.6, 5.25, m.sage);
-  kit.block(root, 5.9, 5.92, 0.02, 1.4, 4.62, 5.235, m.sage);
-  kit.block(root, 5.9, 5.92, 1.42, 2.23, 4.62, 5.235, m.sage);
-  kit.block(root, 5.88, 5.9, 0.95, 1.35, 4.66, 4.68, m.brass, { cast: false });
-  kit.block(root, 5.88, 5.9, 1.47, 1.8, 4.66, 4.68, m.brass, { cast: false });
+  // Black fridge-freezer column with steel bar handles
+  kit.block(root, 5.92, 6.5, 0, 2.25, 4.6, 5.25, m.doorDark);
+  kit.rblock(root, 5.9, 5.93, 0.02, 1.4, 4.62, 5.235, 0.008, m.screen);
+  kit.rblock(root, 5.9, 5.93, 1.42, 2.23, 4.62, 5.235, 0.008, m.screen);
+  kit.cyl(root, 0.012, 0.012, 0.42, m.chrome, 5.875, 1.15, 4.68, { segments: 10, cast: false });
+  kit.cyl(root, 0.012, 0.012, 0.32, m.chrome, 5.875, 1.64, 4.68, { segments: 10, cast: false });
 
   // Wall cabinets with under-cabinet LED
   kit.block(root, 4.65, 5.88, 1.5, 2.25, 6.25, 6.6, m.sage);
-  kit.block(root, 4.66, 5.26, 1.51, 2.24, 6.23, 6.25, m.sage);
-  kit.block(root, 5.28, 5.87, 1.51, 2.24, 6.23, 6.25, m.sage);
+  kit.shaker(root, 'x', 6.25, -1, 4.65, 5.265, 1.5, 2.25, m.sage);
+  kit.shaker(root, 'x', 6.25, -1, 5.265, 5.88, 1.5, 2.25, m.sage);
   kit.block(root, 4.7, 5.83, 1.49, 1.5, 6.3, 6.34, m.ledStrip, { cast: false });
 
   // Backsplash
@@ -249,10 +264,15 @@ function kitchen(kit: Kit, root: THREE.Group) {
     kit.torus(root, 0.08, 0.003, m.cooktopRing, x, 0.927, z, Math.PI * 2, { rotX: Math.PI / 2, cast: false });
   }
 
-  // Sink + arched brass tap
-  kit.block(root, 5.95, 6.4, 0.92, 0.923, 6.08, 6.45, m.steelDark, { cast: false });
-  kit.cyl(root, 0.015, 0.018, 0.3, m.brass, 6.17, 1.07, 6.52, { segments: 16 });
-  kit.torus(root, 0.1, 0.012, m.brass, 6.17, 1.22, 6.42, Math.PI, { rotY: Math.PI / 2 });
+  // Sink + arched black tap
+  kit.block(root, 5.95, 6.4, 0.7, 0.71, 6.08, 6.45, m.steelDark, { cast: false });
+  kit.block(root, 5.95, 5.96, 0.7, 0.92, 6.08, 6.45, m.appliance, { cast: false });
+  kit.block(root, 6.39, 6.4, 0.7, 0.92, 6.08, 6.45, m.appliance, { cast: false });
+  kit.block(root, 5.95, 6.4, 0.7, 0.92, 6.08, 6.09, m.appliance, { cast: false });
+  kit.block(root, 5.95, 6.4, 0.7, 0.92, 6.44, 6.45, m.appliance, { cast: false });
+  kit.cyl(root, 0.02, 0.02, 0.005, m.chrome, 6.17, 0.712, 6.27, { cast: false });
+  kit.cyl(root, 0.015, 0.018, 0.3, m.blackMetal, 6.17, 1.07, 6.52, { segments: 16 });
+  kit.torus(root, 0.1, 0.012, m.blackMetal, 6.17, 1.22, 6.42, Math.PI, { rotY: Math.PI / 2 });
 
   // Countertop props
   kit.lathe(root, 'kettle', [[0, 0], [0.09, 0], [0.1, 0.08], [0.085, 0.17], [0.03, 0.2], [0, 0.2]], m.appliance, 5.66, 0.92, 6.35);
@@ -261,31 +281,17 @@ function kitchen(kit: Kit, root: THREE.Group) {
 
   // Breakfast bar
   kit.block(root, 4.37, 4.8, 0, 0.1, 4.3, 5.4, m.sageDark);
-  kit.block(root, 4.32, 4.85, 0.1, 0.9, 4.27, 5.43, m.sage);
-  kit.block(root, 4.85, 4.87, 0.11, 0.89, 4.29, 4.84, m.sage);
-  kit.block(root, 4.85, 4.87, 0.11, 0.89, 4.86, 5.41, m.sage);
+  kit.block(root, 4.32, 4.85, 0.1, 0.9, 4.27, 5.43, m.walnut);
+  kit.block(root, 4.85, 4.87, 0.11, 0.89, 4.29, 4.84, m.walnut);
+  kit.block(root, 4.85, 4.87, 0.11, 0.89, 4.86, 5.41, m.walnut);
   kit.block(root, 4.12, 4.88, 0.9, 0.94, 4.22, 5.48, m.quartz);
   kit.lathe(root, 'bowl', [[0, 0], [0.06, 0], [0.12, 0.05], [0.13, 0.07], [0, 0.03]], m.ceramic, 4.55, 0.94, 5.0);
   for (const [dx, dz] of [[0, 0], [0.06, 0.04], [-0.04, 0.05]]) {
     kit.sphere(root, 0.035, m.fruit, 4.55 + dx, 0.99, 5.0 + dz);
   }
 
-  // Counter stools
-  for (const z of [4.55, 5.15]) {
-    kit.cyl(root, 0.18, 0.17, 0.04, m.oak, 3.97, 0.66, z);
-    for (const [dx, dz] of [[0.11, 0.11], [-0.11, 0.11], [0.11, -0.11], [-0.11, -0.11]]) {
-      kit.cyl(root, 0.012, 0.012, 0.64, m.blackMetal, 3.97 + dx, 0.32, z + dz, { segments: 8 });
-    }
-    kit.torus(root, 0.155, 0.008, m.blackMetal, 3.97, 0.25, z, Math.PI * 2, { rotX: Math.PI / 2 });
-  }
-
-  // Brass pendants over the bar
-  for (const z of [4.6, 5.1]) {
-    kit.cyl(root, 0.004, 0.004, 0.62, m.blackMetal, 4.5, 2.39, z, { segments: 6, cast: false });
-    kit.dome(root, 0.13, m.pendant, 4.5, 1.95, z);
-    kit.sphere(root, 0.035, m.bulb, 4.5, 1.97, z, undefined, { cast: false });
-  }
-  kit.pointLight(root, 4.5, 1.85, 4.85, '#ffc98a', 1.5, true);
+  // Upholstered counter chairs facing the bar
+  for (const z of [4.55, 5.15]) stool(kit, root, 3.97, z, FACE.e);
   kit.pointLight(root, 5.3, 2.0, 5.2, '#ffe0bd', 3);
 }
 
@@ -295,51 +301,48 @@ function kitchen(kit: Kit, root: THREE.Group) {
 function bedroom(kit: Kit, root: THREE.Group) {
   const m = kit.m;
 
-  kit.rblock(root, 0.7, 3.15, 0, 0.012, 1.25, 2.95, 0.005, m.rugBedroom, { cast: false });
+  // Headboard wall: white lacquer panels framed by dark timber, with sconces
+  kit.block(root, 1.2, 2.64, 0, 2.52, 0.0, 0.03, m.trim);
+  for (const x of [1.68, 2.16]) kit.block(root, x - 0.004, x + 0.004, 0, 2.52, 0.03, 0.034, m.doorDark, { cast: false });
+  kit.block(root, 0.72, 1.2, 0, 2.52, 0.0, 0.035, m.darkWood);
+  kit.block(root, 2.64, 3.12, 0, 2.52, 0.0, 0.035, m.darkWood);
+  sconce(kit, root, 'x', 0.035, 1, 0.96, 1.45);
+  sconce(kit, root, 'x', 0.035, 1, 2.88, 1.45);
 
-  // Queen bed, headboard on the north wall
-  kit.rblock(root, 1.0, 2.84, 0, 1.15, 0, 0.12, 0.05, m.headboard);
-  kit.rblock(root, 1.08, 2.76, 0.08, 0.32, 0.12, 2.22, 0.03, m.headboard);
-  kit.rblock(root, 1.12, 2.72, 0.32, 0.56, 0.14, 2.18, 0.06, m.linen);
-  kit.rblock(root, 1.08, 2.76, 0.4, 0.62, 0.78, 2.24, 0.06, m.duvet);
-  kit.rblock(root, 1.08, 2.76, 0.6, 0.67, 0.78, 1.02, 0.03, m.duvet);
-  kit.rbox(root, 0.66, 0.16, 0.42, 0.07, m.linen, 1.5, 0.64, 0.38);
-  kit.rbox(root, 0.66, 0.16, 0.42, 0.07, m.linen, 2.34, 0.64, 0.38);
-  kit.rbox(root, 0.5, 0.42, 0.12, 0.06, m.pillowSage, 1.62, 0.84, 0.66, { rotX: -0.35 });
-  kit.rbox(root, 0.48, 0.4, 0.12, 0.06, m.pillowRust, 2.22, 0.83, 0.68, { rotX: -0.35, rotY: 0.1 });
-  kit.rblock(root, 1.06, 2.78, 0.62, 0.65, 1.75, 2.08, 0.012, m.throwRust);
-  kit.rblock(root, 1.06, 2.78, 0.3, 0.65, 2.22, 2.25, 0.012, m.throwRust);
+  // Queen bed: low upholstered headboard, grey duvet, houndstooth throw
+  // Channel-tufted headboard
+  for (let i = 0; i < 6; i++) {
+    const a = 1.0 + i * 0.307;
+    kit.cushionBlock(root, a + 0.004, a + 0.303, 0.12, 1.05, 0.035, 0.15, 0.05, m.headboard, { puff: 0.018 });
+  }
+  kit.rblock(root, 1.08, 2.76, 0.08, 0.32, 0.15, 2.22, 0.03, m.walnut);
+  kit.cushionBlock(root, 1.12, 2.72, 0.32, 0.56, 0.17, 2.18, 0.06, m.linen, { puff: 0.02 });
+  // Duvet draped over the mattress, rolled back at the head
+  kit.drape(root, 1.62, 1.42, 0.24, 41, m.duvet, 1.92, 0.585, 0.78, { wrinkle: 0.007 });
+  kit.cushionBlock(root, 1.1, 2.74, 0.57, 0.67, 0.72, 0.98, 0.05, m.duvet, { puff: 0.02 });
+  // Sleeping pillows lying flat, decorative pillows leaning on them
+  kit.pillow(root, 0.66, 0.44, 0.17, m.linen, 1.5, 0.66, 0.42, { rotX: -Math.PI / 2 });
+  kit.pillow(root, 0.66, 0.44, 0.17, m.linen, 2.34, 0.66, 0.42, { rotX: -Math.PI / 2 });
+  kit.pillow(root, 0.5, 0.42, 0.16, m.pillowCharcoal, 1.6, 0.86, 0.62, { rotX: -0.35, rotY: -0.06 });
+  kit.pillow(root, 0.5, 0.42, 0.16, m.pillowCharcoal, 2.24, 0.86, 0.64, { rotX: -0.35, rotY: 0.08 });
+  // Houndstooth-tone throw over the foot
+  kit.drape(root, 1.68, 0.42, 0.28, 43, m.throwRust, 1.92, 0.65, 1.78, { wrinkle: 0.01 });
 
-  // Bench at the foot of the bed
-  kit.rblock(root, 1.35, 2.5, 0.06, 0.45, 2.34, 2.66, 0.04, m.headboard);
-  for (const x of [1.4, 2.45]) for (const z of [2.38, 2.62]) kit.block(root, x - 0.015, x + 0.015, 0, 0.06, z - 0.015, z + 0.015, m.blackMetal);
-
-  // Nightstands with lamps
+  // Floating walnut nightstands
   for (const x of [0.72, 3.12]) {
-    kit.rblock(root, x - 0.22, x + 0.22, 0, 0.52, 0.06, 0.46, 0.01, m.oak);
-    kit.block(root, x - 0.2, x + 0.2, 0.3, 0.302, 0.46, 0.465, m.walnut);
-    kit.sphere(root, 0.012, m.brass, x, 0.4, 0.47);
-    kit.tableLamp(root, x, 0.52, 0.24);
+    kit.rblock(root, x - 0.22, x + 0.22, 0.32, 0.5, 0.04, 0.42, 0.01, m.walnut);
   }
-  kit.block(root, 0.58, 0.8, 0.52, 0.55, 0.15, 0.32, m.bookC);
+  kit.plant(root, 3.05, 0.5, 0.22, 'bush', 0.2, 31, m.ceramic);
+  kit.block(root, 0.58, 0.8, 0.5, 0.53, 0.12, 0.3, m.bookC);
 
-  // Wardrobe against the bathroom wall
-  kit.block(root, 3.48, 4.04, 0, 2.4, 0.04, 2.0, m.trim);
-  for (const [z0, z1] of [[0.05, 0.69], [0.7, 1.34], [1.35, 1.99]]) {
-    kit.block(root, 3.46, 3.48, 0.02, 2.38, z0, z1, m.oak);
-    kit.block(root, 3.44, 3.46, 0.95, 1.45, z1 - 0.06, z1 - 0.045, m.blackMetal, { cast: false });
-  }
+  // Black-framed wardrobe with smoked glass, against the bathroom wall
+  wardrobe(kit, root, 4.04, 1.02, FACE.w, 1.96, 0.56);
 
-  // Art pair above the headboard
-  kit.art(root, 'x', 0, 1, 1.5, 1.68, 0.5, 0.65, m.artB, m.oak);
-  kit.art(root, 'x', 0, 1, 2.34, 1.68, 0.5, 0.65, m.artC, m.oak);
-
-  kit.plant(root, 0.4, 0, 1.15, 'bush', 0.6, 21, m.potStone);
+  kit.model(root, PLANT_MODEL, 0.42, 0, 1.15, 0.85, 2.1);
   kit.curtain(root, 0.09, 0.32, 0.75, 2.38);
 
-  // Flush ceiling light
-  kit.sphere(root, 0.22, m.lampShade, 1.92, WALL_H, 1.5, [1, 0.22, 1], { cast: false });
-  kit.pointLight(root, 1.92, 2.0, 1.8, '#ffd6a5', 3);
+  kit.cove(root, 0, 0, 4.04, 3.09);
+  kit.pointLight(root, 1.92, 2.0, 1.8, '#ffd6a5', 2.6);
 }
 
 // ------------------------------------------------------------
@@ -349,61 +352,31 @@ function bathroom(kit: Kit, root: THREE.Group) {
   const m = kit.m;
   const T = m.bathTile;
 
-  // Wall tiling to 2.2 m
+  // Large-format warm stone to 2.2 m
   kit.panel(root, 'x', 4.16, 6.5, 0, 2.2, 0.002, 1, T, BATH_TILE);
   kit.panel(root, 'z', 0, 1.94, 0, 2.2, 6.498, -1, T, BATH_TILE);
   kit.panel(root, 'z', 0, 1.94, 0, 2.2, 4.162, 1, T, BATH_TILE);
   kit.panel(root, 'x', 4.16, 4.79, 0, 2.2, 1.938, -1, T, BATH_TILE);
   kit.panel(root, 'x', 5.66, 6.5, 0, 2.2, 1.938, -1, T, BATH_TILE);
 
-  // Wall-hung WC with concealed cistern
-  kit.block(root, 5.1, 5.75, 0, 1.1, 0.0, 0.18, m.sage);
-  kit.block(root, 5.08, 5.77, 1.1, 1.13, 0.0, 0.2, m.quartz);
-  kit.rblock(root, 5.33, 5.53, 0.86, 1.0, 0.18, 0.19, 0.008, m.ceramic);
-  kit.sphere(root, 0.2, m.ceramic, 5.43, 0.38, 0.44, [0.9, 0.55, 1.3]);
-  kit.rbox(root, 0.36, 0.03, 0.46, 0.012, m.ceramic, 5.43, 0.5, 0.45);
+  // Walk-in shower to the left of the door, vanity ahead, WC to the right
+  shower(kit, root, [4.16, 0, 5.0, 1.25], { along: 'z', at: 5.0, from: 0, to: 1.0 }, [4.58, 0.6]);
+  kit.block(root, 4.3, 4.85, 1.2, 1.215, 1.0, 1.015, m.blackMetal);
+  kit.rblock(root, 4.36, 4.8, 0.72, 1.22, 1.0, 1.03, 0.01, m.towel);
+  vanity(kit, root, 5.5, 0, FACE.s, { width: 0.75, reflect: true });
+  toilet(kit, root, 6.12, 0, FACE.s);
 
-  // Floating oak vanity, vessel basin, round backlit mirror
-  kit.block(root, 4.17, 4.66, 0.45, 0.83, 0.85, 1.65, m.oak);
-  kit.block(root, 4.16, 4.68, 0.83, 0.86, 0.83, 1.67, m.quartz);
-  kit.lathe(root, 'basin', [[0, 0], [0.12, 0.005], [0.17, 0.04], [0.19, 0.1], [0.18, 0.12], [0.17, 0.11], [0.165, 0.05], [0, 0.035]], m.ceramic, 4.43, 0.86, 1.22);
-  kit.cyl(root, 0.012, 0.012, 0.18, m.blackMetal, 4.25, 1.08, 1.22, { rotZ: Math.PI / 2, segments: 12 });
-  kit.torus(root, 0.36, 0.014, m.mirrorGlow, 4.168, 1.62, 1.22, Math.PI * 2, { rotY: Math.PI / 2, cast: false });
-  kit.cyl(root, 0.355, 0.355, 0.01, m.trim, 4.169, 1.62, 1.22, { rotZ: Math.PI / 2, segments: 64, cast: false });
-  // Real planar reflection; only re-renders while it faces the camera
-  const res = 1024;
-  const mirror = new Reflector(new THREE.CircleGeometry(0.35, 64), {
-    textureWidth: res, textureHeight: res, color: 0xe6e6e6, clipBias: 0.003, multisample: kit.lowTier ? 0 : 4,
-  });
-  mirror.position.set(4.176, 1.62, 1.22);
-  mirror.rotation.y = Math.PI / 2;
-  root.add(mirror);
-  kit.noAO.push(mirror);
-  kit.disposables.push(mirror);
-  kit.plant(root, 4.3, 0.86, 1.56, 'snake', 0.3, 33, m.potStone);
+  // Lit open niche shelves above the WC
+  kit.block(root, 5.86, 6.38, 1.3, 2.15, 0.0, 0.24, m.taupe);
+  for (const y of [1.55, 1.85]) {
+    kit.block(root, 5.88, 6.36, y - 0.015, y, 0.02, 0.24, m.taupe);
+    kit.block(root, 5.9, 6.34, y - 0.025, y - 0.017, 0.18, 0.22, m.ledStrip, { cast: false });
+  }
+  kit.cyl(root, 0.03, 0.03, 0.16, m.screen, 5.98, 1.63, 0.12, { segments: 12 });
+  kit.cyl(root, 0.03, 0.03, 0.18, m.screen, 6.08, 1.64, 0.12, { segments: 12 });
+  kit.plant(root, 6.22, 1.85, 0.12, 'snake', 0.22, 33, m.glass);
 
-  // Towel rail by the door
-  kit.block(root, 4.3, 4.75, 1.2, 1.215, 1.885, 1.9, m.blackMetal);
-  kit.rblock(root, 4.34, 4.71, 0.78, 1.22, 1.87, 1.9, 0.01, m.towel);
-
-  // Walk-in shower
-  kit.block(root, 5.745, 5.755, 0.0, 2.0, 0.68, 1.3, m.glass, { cast: false, receive: false, noAO: true });
-  kit.block(root, 5.74, 5.76, 1.98, 2.0, 0.68, 1.3, m.blackMetal);
-  kit.block(root, 5.74, 5.76, 0, 2.0, 0.66, 0.69, m.blackMetal);
-  kit.cyl(root, 0.15, 0.15, 0.012, m.blackMetal, 6.15, 2.25, 1.3);
-  kit.block(root, 6.15, 6.5, 2.265, 2.285, 1.29, 1.31, m.blackMetal);
-  kit.cyl(root, 0.06, 0.06, 0.02, m.blackMetal, 6.49, 1.1, 1.3, { rotZ: Math.PI / 2 });
-  kit.block(root, 5.85, 6.4, 0.003, 0.006, 1.84, 1.88, m.steelDark, { cast: false });
-
-  // Open oak shelving with folded towels
-  kit.block(root, 5.85, 5.87, 0, 1.6, 0.04, 0.55, m.oak);
-  kit.block(root, 6.46, 6.48, 0, 1.6, 0.04, 0.55, m.oak);
-  for (const y of [0.05, 0.55, 1.05, 1.58]) kit.block(root, 5.87, 6.46, y - 0.02, y, 0.04, 0.55, m.oak);
-  kit.rblock(root, 5.95, 6.38, 0.55, 0.7, 0.12, 0.45, 0.03, m.towel);
-  kit.rblock(root, 5.95, 6.38, 1.05, 1.18, 0.12, 0.45, 0.03, m.towel);
-  kit.lathe(root, 'basket', [[0, 0], [0.16, 0], [0.18, 0.22], [0.17, 0.22], [0.15, 0.02], [0, 0.02]], m.potTerracotta, 6.16, 0.05, 0.3);
-
-  kit.pointLight(root, 5.2, 2.0, 1.0, '#fff0de', 2.5);
+  kit.pointLight(root, 5.3, 2.0, 1.0, '#fff0de', 2.5);
 }
 
 // ------------------------------------------------------------

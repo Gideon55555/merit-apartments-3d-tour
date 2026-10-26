@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Kit } from '../kit';
 import {
   FACE, sofa, coffeeTable, rug, tvUnit, diningSet, bed, wardrobe, kitchenRun, fridge,
-  pendants, toilet, vanity, shower, bathtub, bathTiles, plant, planter, balcony,
+  toilet, vanity, shower, bathtub, bathTiles, plant, planter, balcony, chandelier, headboardWall, nicheShelves,
 } from '../furniture';
 import { drawRecordedPlan } from '../paperPlan';
 import type { ApartmentDef } from '../types';
@@ -40,7 +40,6 @@ function build(kit: Kit) {
 
   // --- Exterior walls ---
   kit.wall(root, 'x', -EXT / 2, EXT, -0.86, 11.2, [
-    { a: 0.4, b: 2.3, bottom: 1.2, top: 2.4 },
     { a: 3.4, b: 4.1, bottom: 1.5, top: 2.2 },
     { a: 5.2, b: 6.6, bottom: 0.85, top: 2.4 },
     { a: 7.7, b: 8.3, bottom: 1.5, top: 2.2 },
@@ -100,7 +99,8 @@ function build(kit: Kit) {
   coffeeTable(kit, root, 2.0, 5.38);
   tvUnit(kit, root, 1.6, 4.07, FACE.s, 2.0);
   diningSet(kit, root, 4.11, 5.32, FACE.s, 1.4, 0.85, 2);
-  pendants(kit, root, [[3.75, 5.32], [4.47, 5.32]]);
+  chandelier(kit, root, 2.0, 2.25, 5.38);
+  kit.cove(root, 0, 4.07, 6.64, 7.3);
   kit.art(root, 'x', 3.92, 1, 4.0, 1.55, 1.0, 0.7, m.artA, m.oak);
   kit.curtain(root, 0.09, 6.68, 7.08, 2.38);
   plant(kit, root, 0.32, 4.55, 'snake', 0.9, 71, m.potBlack);
@@ -112,8 +112,8 @@ function build(kit: Kit) {
 
   // --- Galley kitchen ---
   fridge(kit, root, 7.07, 3.92, FACE.s);
-  kitchenRun(kit, root, 8.465, 3.92, FACE.s, 2.17, { hob: 0.45, uppers: [-1.0, 0.9] });
-  kitchenRun(kit, root, 8.155, 6.0, FACE.n, 2.79, { sink: -0.95 });
+  kitchenRun(kit, root, 8.465, 3.92, FACE.s, 2.17, { hob: 0.45, hood: true, uppers: [-1.0, 0.0] });
+  kitchenRun(kit, root, 8.155, 6.0, FACE.n, 2.79, { sink: -0.95, uppers: [-1.35, 0.6] });
   kit.pointLight(root, 8.2, 2.0, 4.95, '#ffe0bd', 2.8);
 
   // --- Corridor, passage, entry hall ---
@@ -125,34 +125,39 @@ function build(kit: Kit) {
 
   // --- Primary bedroom ---
   rug(kit, root, 0.0, 1.2, 2.2, 3.2, m.rugBedroom);
-  bed(kit, root, 1.1, 0, FACE.s);
+  headboardWall(kit, root, 1.1, 0, FACE.s, 1.2);
+  bed(kit, root, 1.1, 0.035, FACE.s);
+  kit.cove(root, -0.66, 0, 2.85, 3.95);
   wardrobe(kit, root, 2.85, 1.7, FACE.w, 2.2);
   plant(kit, root, -0.35, 3.45, 'bush', 0.55, 75, m.potStone);
   kit.curtain(root, -0.57, 0.55, 0.95, 2.38);
   kit.pointLight(root, 1.1, 2.0, 1.9, '#ffd6a5', 3);
-  planter(kit, root, 0.4, -0.65, 2.3, -0.2, 82);
 
   // --- Bath 1 ---
   bathTiles(kit, root, [2.97, 0, 4.6, 2.8], [{ side: 's', a: 3.2, b: 3.9 }]);
   shower(kit, root, [2.97, 0, 4.0, 0.85], { along: 'x', at: 0.85, from: 2.97, to: 3.7 }, [3.45, 0.4]);
   toilet(kit, root, 4.6, 1.5, FACE.w);
+  nicheShelves(kit, root, 4.6, 1.5, FACE.w, 0.5);
   vanity(kit, root, 4.6, 2.3, FACE.w, { width: 0.7 });
   kit.pointLight(root, 3.8, 2.0, 1.4, '#fff0de', 2.0, true);
 
   // --- Bedroom 2 ---
-  bed(kit, root, 4.72, 1.25, FACE.e, { width: 1.4, throwMat: m.pillowSage });
-  kit.art(root, 'z', 4.72, 1, 1.25, 1.62, 0.6, 0.42, m.artB, m.oak);
+  headboardWall(kit, root, 4.72, 1.25, FACE.e, 1.0);
+  bed(kit, root, 4.755, 1.25, FACE.e, { width: 1.4, throwMat: m.pillowSage });
+  kit.cove(root, 4.72, 0, 7.25, 2.8);
   kit.pointLight(root, 6.0, 2.0, 1.4, '#ffd6a5', 2.6);
 
   // --- Bath 2 ---
   bathTiles(kit, root, [7.37, 0, 8.75, 2.8], [{ side: 's', a: 7.5, b: 8.2 }]);
   shower(kit, root, [7.37, 0, 8.3, 0.85], { along: 'x', at: 0.85, from: 7.9, to: 8.3 }, [7.85, 0.4]);
   toilet(kit, root, 8.75, 1.5, FACE.w);
+  nicheShelves(kit, root, 8.75, 1.5, FACE.w, 0.5);
   vanity(kit, root, 8.75, 2.3, FACE.w, { reflect: true, width: 0.7 });
   kit.pointLight(root, 8.05, 2.0, 1.4, '#fff0de', 2.2);
 
   // --- Bedroom 3 ---
   bed(kit, root, 10.15, 0, FACE.s, { width: 1.4, nightstands: false, throwMat: m.pillowCharcoal });
+  kit.cove(root, 8.87, 0, 11.0, 2.8);
   wardrobe(kit, root, 8.87, 0.95, FACE.e, 1.6, 0.55);
   kit.curtain(root, 10.91, 0.65, 1.0, 2.25);
   kit.pointLight(root, 10.0, 2.0, 1.5, '#ffd6a5', 2.4);

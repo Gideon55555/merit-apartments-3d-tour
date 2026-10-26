@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
+
+// Self-hosted at build time: no request to Google at runtime, preloaded,
+// and metric-matched fallbacks so text doesn't jump when the font arrives
+const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600'], display: 'swap', variable: '--font-inter' });
+const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap', variable: '--font-playfair' });
 
 export const metadata: Metadata = {
   title: 'Merit Properties — 44 m² Modern Apartment',
@@ -23,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <body>
         {children}
       </body>

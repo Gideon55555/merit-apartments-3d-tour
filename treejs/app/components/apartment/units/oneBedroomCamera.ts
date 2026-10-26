@@ -31,8 +31,8 @@ export const ONE_BED_KEYS: CameraKey[] = [
   { u: 10.3, pos: [4.1, 1.6, 2.62], target: [6.4, 1.3, 2.5], fov: 58, shift: 0 },
   { u: 10.8, pos: [5.25, 1.6, 2.6], target: [5.0, 1.0, 0.2], fov: 60, shift: 0 },
   // 05 Bathroom — in the pocket-door opening
-  { u: 11.3, pos: [5.42, 1.62, 1.92], target: [4.7, 0.95, 0.5], fov: 66, shift: -0.18 },
-  { u: 12.3, pos: [5.36, 1.58, 1.8], target: [4.62, 0.95, 0.45], fov: 66, shift: -0.18 },
+  { u: 11.3, pos: [5.42, 1.62, 1.92], target: [5.3, 1.05, 0.1], fov: 66, shift: -0.18 },
+  { u: 12.3, pos: [5.36, 1.58, 1.8], target: [5.2, 1.05, 0.1], fov: 66, shift: -0.18 },
   // Crane straight up through the roof and fly round to the facade
   { u: 12.9, pos: [5.2, 3.6, 1.6], target: [4.4, 0, 1.2], fov: 55, shift: 0 },
   { u: 13.7, pos: [1.6, 5.6, 4.8], target: [0.4, 0.6, 2.9], fov: 50, shift: 0.1 },

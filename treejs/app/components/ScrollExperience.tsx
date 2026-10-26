@@ -40,6 +40,17 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
   const metrics = useRef({ top: 0, range: 1 });
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [active, setActive] = useState(0);
+  // Embedded on another site (?embed=1): hide the Merit chrome and the
+  // enquiry section; ?cta=<https url> sends the final button to the host
+  // site's own contact page instead.
+  const [embed] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cta = params.get('cta');
+    return {
+      on: params.has('embed'),
+      cta: cta && /^https?:\/\//i.test(cta) ? cta : null,
+    };
+  });
 
   const scrollForUnits = useCallback(
     (u: number) => metrics.current.top + (u / total) * metrics.current.range,
@@ -200,14 +211,14 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
         <div className="loading-text loading-text--small">Preparing your experience</div>
       </div>
 
-      <div className="brand">Merit Properties</div>
-      <nav className="unit-switch" aria-label="Apartment types">
+      {!embed.on && <div className="brand">Merit Properties</div>}
+      {!embed.on && <nav className="unit-switch" aria-label="Apartment types">
         {UNIT_LIST.map((u) => (
           <Link key={u.slug} href={u.path} className={u.slug === slug ? 'is-current' : ''} aria-current={u.slug === slug ? 'page' : undefined}>
             {u.shortName}
           </Link>
         ))}
-      </nav>
+      </nav>}
       <div ref={progressRef} className="progress-bar" />
 
       <nav className="nav-dots" aria-label="Scene navigation">
@@ -268,10 +279,17 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
                           </div>
                         ))}
                       </div>
-                      <a href="#enquire" className="cta-button animate-in">
-                        Enquire About This Apartment
-                        <ArrowIcon />
-                      </a>
+                      {(!embed.on || embed.cta) && (
+                        <a
+                          href={embed.on && embed.cta ? embed.cta : '#enquire'}
+                          target={embed.on ? '_top' : undefined}
+                          rel={embed.on ? 'noopener' : undefined}
+                          className="cta-button animate-in"
+                        >
+                          Enquire About This Apartment
+                          <ArrowIcon />
+                        </a>
+                      )}
                     </>
                   )}
                 </div>
@@ -281,8 +299,8 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
         </div>
       </section>
 
-      {/* Enquiry */}
-      <section id="enquire" className="enquiry">
+      {/* Enquiry (the host site provides its own when embedded) */}
+      {!embed.on && <section id="enquire" className="enquiry">
         <div className="enquiry__inner">
           <h2 className="enquiry__title">Interested in This Apartment?</h2>
           <p className="enquiry__text">
@@ -295,7 +313,7 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
           </a>
           <p className="enquiry__note">Prices and availability are subject to confirmation.</p>
         </div>
-      </section>
+      </section>}
     </>
   );
 }

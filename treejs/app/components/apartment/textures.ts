@@ -189,6 +189,63 @@ function tileTexture(o: TileOptions, anisotropy: number) {
   return toTexture(canvas, anisotropy);
 }
 
+/**
+ * Large-format marble-look porcelain (60 × 120 cm) in pale warm grey,
+ * as in the design renders. One texture tile = FLOOR_TILE (2.4 m).
+ */
+export function porcelainFloorTexture(anisotropy: number) {
+  const size = 1024;
+  const { canvas, ctx } = makeCanvas(size, size);
+  const rand = seededRandom(19);
+  const tw = size / 4;
+  const th = size / 2;
+  ctx.fillStyle = '#cfcac3';
+  ctx.fillRect(0, 0, size, size);
+  for (let ty = 0; ty < 2; ty++) {
+    for (let tx = 0; tx < 4; tx++) {
+      const x = tx * tw + 1;
+      const y = ty * th + 1;
+      const w = tw - 2;
+      const h = th - 2;
+      ctx.fillStyle = hsl(32, 9, 82 + (rand() - 0.5) * 2.5);
+      ctx.fillRect(x, y, w, h);
+      // Soft clouding
+      for (let i = 0; i < 25; i++) {
+        ctx.fillStyle = hsl(30, 6, 84 + rand() * 6, 0.1);
+        ctx.beginPath();
+        ctx.ellipse(x + rand() * w, y + rand() * h, 20 + rand() * 60, 10 + rand() * 40, rand() * Math.PI, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Fine grey veins, clipped to the tile
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, w, h);
+      ctx.clip();
+      ctx.filter = 'blur(0.8px)';
+      for (let v = 0; v < 2; v++) {
+        ctx.strokeStyle = `rgba(120, 112, 102, ${0.05 + rand() * 0.08})`;
+        ctx.lineWidth = 0.5 + rand() * 1.0;
+        ctx.beginPath();
+        let vx = x + rand() * w;
+        let vy = y;
+        ctx.moveTo(vx, vy);
+        while (vy < y + h) {
+          const nx = vx + (rand() - 0.5) * 70;
+          const ny = vy + 30 + rand() * 50;
+          ctx.quadraticCurveTo(vx + (rand() - 0.5) * 50, (vy + ny) / 2, nx, ny);
+          vx = nx;
+          vy = ny;
+        }
+        ctx.stroke();
+      }
+      ctx.filter = 'none';
+      ctx.restore();
+    }
+  }
+  addNoise(ctx, size, size, 4, rand);
+  return toTexture(canvas, anisotropy);
+}
+
 /** Large-format warm stone tiles (60 × 30 cm). One texture tile = 1.2 m. */
 export const BATH_TILE = 1.2;
 export function bathTileTexture(anisotropy: number) {
