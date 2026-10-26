@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Merit Properties — 3D Apartment Tour
 
-## Getting Started
-
-First, run the development server:
+A scroll-driven 3D walkthrough of a 44 m² one-bedroom apartment, built with Next.js, Three.js and Lenis.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How it works
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| File | Role |
+|---|---|
+| `app/components/ScrollExperience.tsx` | Page UI, Lenis smooth scrolling and the single frame loop that drives the camera and copy |
+| `app/components/ApartmentScene.tsx` | Renderer, post-processing (MSAA + GTAO), quality tiers, render-on-demand |
+| `app/components/apartment/apartment.ts` | The apartment model, measured from `public/floorplan.png` |
+| `app/components/apartment/kit.ts` | Geometry helpers: walls with openings, glazing, plants, curtains, lamps |
+| `app/components/apartment/materials.ts` / `textures.ts` | Materials and procedurally generated textures (no image assets) |
+| `app/components/apartment/environment.ts` | Sky, sun, image-based lighting, trees |
+| `app/components/apartment/cameraPath.ts` | Camera route and timing: one spline, eased with a monotone cubic so it never jerks or reverses |
 
-## Learn More
+### Editing the camera route
 
-To learn more about Next.js, take a look at the following resources:
+Each entry in `KEYS` pins a camera position, look-at target and FOV to a scroll position `u`. Pairs of keys
+with the copy on screen form a "hold" and must match `HOLDS` (and the order of `SCENES` in `ScrollExperience.tsx`).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Dev-only URL parameters
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `?u=5.6` — jump to a point on the path
+- `?debug` — report camera clearance to geometry and turn rate along the whole path
+- `?quality=high|low` — force a quality tier (disables adaptive downgrade)
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Scene deep links (`/#kitchen`, `/#bedroom`, …) work in production too.
