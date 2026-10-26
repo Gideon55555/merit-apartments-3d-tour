@@ -42,10 +42,14 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
   const [active, setActive] = useState(0);
   // Embedded on another site (?embed=1): hide the Merit chrome and the
   // enquiry section; ?cta=<https url> sends the final button to the host
-  // site's own contact page instead.
+  // site's own contact page instead, and ?accent=<hex> matches its brand.
   const [embed] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const cta = params.get('cta');
+    const accent = params.get('accent');
+    if (accent && /^[0-9a-f]{6}$/i.test(accent)) {
+      document.documentElement.style.setProperty('--color-accent', `#${accent}`);
+    }
     return {
       on: params.has('embed'),
       cta: cta && /^https?:\/\//i.test(cta) ? cta : null,

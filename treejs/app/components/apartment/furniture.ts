@@ -161,9 +161,10 @@ function chair(kit: Kit, p: Parent, x: number, z: number, rot: number) {
 // ------------------------------------------------------------
 
 /** Bed with upholstered headboard and nightstands. Origin: headboard wall, centre; foot points +Z. */
-export function bed(kit: Kit, p: Parent, x: number, z: number, rot: number, o: { width?: number; nightstands?: boolean; throwMat?: THREE.Material } = {}) {
+export function bed(kit: Kit, p: Parent, x: number, z: number, rot: number, o: { width?: number; length?: number; nightstands?: boolean; throwMat?: THREE.Material } = {}) {
   const w = o.width ?? 1.6;
-  const l = 2.1;
+  const l = o.length ?? 2.1;
+  const single = w < 1.1;
   const m = kit.m;
   kit.place(p, x, z, rot, (g) => {
     // Channel-tufted headboard
@@ -179,19 +180,28 @@ export function bed(kit: Kit, p: Parent, x: number, z: number, rot: number, o: {
     kit.drape(g, w + 0.02, l - 0.7, 0.24, Math.round(w * 37), m.duvet, 0, 0.585, 0.78, { wrinkle: 0.007 });
     kit.cushionBlock(g, -w / 2 - 0.01, w / 2 + 0.01, 0.57, 0.67, 0.72, 0.98, 0.05, m.duvet, { puff: 0.02 });
     // Sleeping pillows flat, decorative pillows leaning on them
-    const pw = Math.min(0.66, w / 2 - 0.08);
-    kit.pillow(g, pw, 0.44, 0.17, m.linen, -w / 4 - 0.02, 0.66, 0.4, { rotX: -Math.PI / 2 });
-    kit.pillow(g, pw, 0.44, 0.17, m.linen, w / 4 + 0.02, 0.66, 0.4, { rotX: -Math.PI / 2 });
-    kit.pillow(g, 0.5, 0.42, 0.16, m.pillowCharcoal, -0.3, 0.86, 0.62, { rotX: -0.35, rotY: -0.06 });
-    kit.pillow(g, 0.48, 0.4, 0.16, m.pillowSage, 0.3, 0.85, 0.64, { rotX: -0.35, rotY: 0.1 });
+    if (single) {
+      kit.pillow(g, w - 0.18, 0.44, 0.17, m.linen, 0, 0.66, 0.4, { rotX: -Math.PI / 2 });
+      kit.pillow(g, 0.46, 0.38, 0.15, m.pillowSage, 0, 0.84, 0.62, { rotX: -0.35, rotY: 0.08 });
+    } else {
+      const pw = Math.min(0.66, w / 2 - 0.08);
+      kit.pillow(g, pw, 0.44, 0.17, m.linen, -w / 4 - 0.02, 0.66, 0.4, { rotX: -Math.PI / 2 });
+      kit.pillow(g, pw, 0.44, 0.17, m.linen, w / 4 + 0.02, 0.66, 0.4, { rotX: -Math.PI / 2 });
+      kit.pillow(g, 0.5, 0.42, 0.16, m.pillowCharcoal, -0.3, 0.86, 0.62, { rotX: -0.35, rotY: -0.06 });
+      kit.pillow(g, 0.48, 0.4, 0.16, m.pillowSage, 0.3, 0.85, 0.64, { rotX: -0.35, rotY: 0.1 });
+    }
     // Throw over the foot
     const t = o.throwMat ?? m.throwRust;
     kit.drape(g, w + 0.08, 0.42, 0.28, Math.round(w * 53), t, 0, 0.65, l - 0.32, { wrinkle: 0.01 });
 
     kit.planBox(-w / 2 - 0.08, 0, w / 2 + 0.08, 0.12, { round: 0.03 });
     kit.planBox(-w / 2, 0.12, w / 2, l + 0.12, { round: 0.04 });
-    kit.planBox(-w / 2 + 0.09, 0.18, -0.03, 0.6, { round: 0.06 });
-    kit.planBox(0.03, 0.18, w / 2 - 0.09, 0.6, { round: 0.06 });
+    if (single) {
+      kit.planBox(-w / 2 + 0.09, 0.18, w / 2 - 0.09, 0.6, { round: 0.06 });
+    } else {
+      kit.planBox(-w / 2 + 0.09, 0.18, -0.03, 0.6, { round: 0.06 });
+      kit.planBox(0.03, 0.18, w / 2 - 0.09, 0.6, { round: 0.06 });
+    }
     kit.planLine(-w / 2, 0.78, w / 2, 0.78);
     kit.planLine(-w / 2, 1.02, w / 2, 1.02);
     kit.planBox(-w / 2 - 0.02, l - 0.35, w / 2 + 0.02, l - 0.02, { round: 0.01 });

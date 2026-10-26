@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Kit } from '../kit';
 import {
   FACE, sofa, coffeeTable, rug, tvUnit, diningSet, bed, wardrobe, kitchenRun, fridge,
-  toilet, vanity, shower, bathtub, bathTiles, plant, planter, balcony, chandelier, headboardWall, nicheShelves,
+  toilet, vanity, shower, bathTiles, plant, planter, balcony, chandelier, headboardWall, nicheShelves,
 } from '../furniture';
 import { drawRecordedPlan } from '../paperPlan';
 import type { ApartmentDef } from '../types';
@@ -21,7 +21,7 @@ import { finish, shell } from './shell';
 //   Corridor         X 2.97–9.55  Z 2.92–3.80
 //   Living / dining  X 0.00–6.64  Z 4.07–7.30  (glazing to a slim balcony)
 //   Galley kitchen   X 6.76–9.55  Z 3.92–6.00
-//   Bath 3 + WC      east side, entry hall along the south wall
+//   Maid's room, WC  east side, entry hall along the south wall
 // ============================================================
 
 const EXT = 0.2;
@@ -35,7 +35,7 @@ function build(kit: Kit) {
   shell(kit, root, {
     slab: [-0.86, -0.65, 11.2, 7.95],
     wood: [[-0.66, 0, 11.0, 3.92], [0, 3.92, 11.0, 7.3]],
-    tiles: [[2.97, 0, 4.6, 2.8], [7.37, 0, 8.75, 2.8], [9.67, 2.92, 11.0, 4.75], [9.75, 6.12, 11.0, 7.3]],
+    tiles: [[2.97, 0, 4.6, 2.8], [7.37, 0, 8.75, 2.8], [9.75, 6.12, 11.0, 7.3]],
   });
 
   // --- Exterior walls ---
@@ -163,14 +163,13 @@ function build(kit: Kit) {
   kit.pointLight(root, 10.0, 2.0, 1.5, '#ffd6a5', 2.4);
   planter(kit, root, 9.1, -0.65, 10.5, -0.2, 83);
 
-  // --- Bath 3 + guest WC ---
-  bathTiles(kit, root, [9.67, 2.92, 11.0, 4.75], [{ side: 's', a: 9.75, b: 10.45 }]);
-  bathtub(kit, root, 11.0, 3.82, FACE.w, 1.6, 0.7);
-  vanity(kit, root, 9.95, 2.92, FACE.s, { width: 0.55 });
+  // --- Maid's room (compact single bed against the east wall) + WC ---
+  bed(kit, root, 10.55, 2.92, FACE.s, { width: 0.85, length: 1.66, nightstands: false, throwMat: m.pillowCharcoal });
+  kit.art(root, 'x', 2.92, 1, 9.95, 1.5, 0.35, 0.45, m.artB, m.oak);
+  kit.pointLight(root, 10.3, 2.0, 3.8, '#ffd6a5', 1.4, true);
   bathTiles(kit, root, [9.75, 6.12, 11.0, 7.3], [{ side: 'w', a: 6.35, b: 7.0 }]);
   toilet(kit, root, 11.0, 6.92, FACE.w);
   vanity(kit, root, 10.62, 6.12, FACE.s, { width: 0.45 });
-  kit.pointLight(root, 10.3, 2.0, 3.8, '#fff0de', 1.6, true);
 
   // --- Balcony ---
   balcony(kit, root, [-0.86, 4.07, -0.2, 7.3], ['w', 's']);
@@ -196,14 +195,14 @@ export const threeBedroom: ApartmentDef = {
   paper: (kit) => ({
     sheet: [-2.7, -1.75, 13.05, 9.0],
     labels: [
-      { x: 1.1, z: 2.95, name: 'PRIMARY BEDROOM', area: '14 m²' },
+      { x: 1.1, z: 2.95, name: 'PRIMARY BEDROOM', area: '17 m²' },
       { x: 3.5, z: 1.75, name: 'BATH' },
-      { x: 5.95, z: 2.45, name: 'BEDROOM 2', area: '7 m²' },
+      { x: 5.95, z: 2.45, name: 'BEDROOM 2', area: '12 m²' },
       { x: 7.78, z: 1.75, name: 'BATH' },
-      { x: 10.1, z: 2.55, name: 'BEDROOM 3', area: '6 m²' },
-      { x: 4.6, z: 6.75, name: 'LIVING / DINING', area: '21 m²' },
-      { x: 8.15, z: 5.08, name: 'KITCHEN', area: '6 m²' },
-      { x: 9.95, z: 4.3, name: 'BATH' },
+      { x: 10.1, z: 2.55, name: 'BEDROOM 3', area: '11 m²' },
+      { x: 4.6, z: 6.75, name: 'LIVING / DINING', area: '29 m²' },
+      { x: 8.15, z: 5.08, name: 'KITCHEN', area: '10 m²' },
+      { x: 9.95, z: 4.4, name: 'MAID', area: '6 m²' },
       { x: 10.0, z: 6.95, name: 'WC' },
       { x: 8.1, z: 6.85, name: 'HALL' },
       { x: -0.53, z: 5.7, name: 'BALCONY', rotate: true },
@@ -212,7 +211,7 @@ export const threeBedroom: ApartmentDef = {
     north: [-2.05, -1.15],
     scaleBar: [-2.2, 8.5],
     titleBlock: [8.4, 8.2, 12.85, 8.82],
-    titleLines: ['TYPE C — THREE BEDROOM APARTMENT', '77 m² NET · 91 m² GROSS · 3 BATHS + WC'],
+    titleLines: ['TYPE C — THREE BEDROOM APARTMENT', '105 m² NET · 130 m² GROSS (INCL. PARKING)'],
     draw: drawRecordedPlan(kit.plan),
   }),
   keys: [
@@ -262,48 +261,48 @@ export const threeBedroom: ApartmentDef = {
     { u: 18.9, pos: [-4.0, 12.8, 16.2], target: [5.4, 0.3, 3.7], fov: 40, shift: -0.25, lift: 0.5 },
   ],
   holds: [[0, 1], [3.1, 4.1], [5.4, 6.4], [8.7, 9.7], [11.9, 12.9], [14.4, 15.4], [17.8, 18.9]],
-  stats: [['77 m²', 'Net Area'], ['91 m²', 'Gross Area'], ['3', 'Bedrooms'], ['3 + WC', 'Bathrooms'], ['1', 'Balcony']],
+  stats: [['105 m²', 'Net Area'], ['130 m²', 'Gross incl. Parking'], ['3', 'Bedrooms'], ['2', 'Bathrooms'], ['1', 'Maid’s Room']],
   scenes: [
     {
       id: 'overview',
       title: 'Space for the Whole Family',
-      description: 'A generous three-bedroom apartment with three bathrooms, a guest WC and a separate kitchen.',
-      area: '77 m² net · 91 m² gross',
+      description: 'A generous three-bedroom apartment with a master en-suite, a maid’s room, a separate kitchen and private parking.',
+      area: '105 m² net · 130 m² gross incl. parking',
       position: 'left',
     },
     {
       id: 'living-dining',
       title: 'The Heart of the Home',
       description: 'A wide living and dining room with full-height glazing and room for everyone at the table.',
-      area: '21 m² · Living & Dining',
+      area: '29 m² · Living & Dining',
       position: 'left',
     },
     {
       id: 'kitchen',
       title: 'A Proper Galley Kitchen',
       description: 'A separate galley kitchen with counters on both sides and a full-height fridge.',
-      area: '6 m² · Kitchen',
+      area: '10 m² · Kitchen',
       position: 'right',
     },
     {
       id: 'primary-bedroom',
       title: 'The Primary Suite',
-      description: 'A corner bedroom with full-height glazing, a wall of wardrobes and a bathroom next door.',
-      area: '14 m² · Primary Bedroom',
+      description: 'A corner bedroom with full-height glazing, a wall of wardrobes and its own en-suite bathroom.',
+      area: '17 m² · Master Bedroom',
       position: 'left',
     },
     {
       id: 'bedrooms',
       title: 'Two More Bedrooms',
       description: 'Two further bedrooms for children, guests or a study, each with its own window.',
-      area: '7 m² + 6 m² · Bedrooms',
+      area: '12 m² + 11 m² · Bedrooms',
       position: 'left',
     },
     {
       id: 'bathrooms',
-      title: 'Three Bathrooms and a Guest WC',
-      description: 'Walk-in showers, a full-size bath and a separate guest WC keep busy mornings moving.',
-      area: '3 bathrooms · 1 guest WC',
+      title: 'Two Full Bathrooms',
+      description: 'A master en-suite and a common bathroom, both with walk-in showers and stone-look tiling.',
+      area: '9 m² + 7 m² · Bathrooms',
       position: 'right',
     },
     {
