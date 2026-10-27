@@ -37,21 +37,23 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
   const apiRef = useRef<SceneAPI | null>(null);
   const lenisRef = useRef<Lenis | null>(null);
   const snapRef = useRef(false);
+  /** Linked mode: position along the path (0–1) sent by the host page */
+  const linkedRef = useRef(0);
   const metrics = useRef({ top: 0, range: 1 });
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [active, setActive] = useState(0);
   // Embedded on another site (?embed=1): hide the Merit chrome and the
   // enquiry section; ?cta=<https url> sends the final button to the host
-  // site's own contact page instead, and ?accent=<hex> matches its brand.
+  // site's own contact page instead. ?linked=1 hands scrolling to the host
+  // page (see useLinkedScroll). Theme: ?accent, ?bg, ?text (hex) and
+  // ?display, ?body (Google Fonts family names) match the host's brand.
   const [embed] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const cta = params.get('cta');
-    const accent = params.get('accent');
-    if (accent && /^[0-9a-f]{6}$/i.test(accent)) {
-      document.documentElement.style.setProperty('--color-accent', `#${accent}`);
-    }
+    applyTheme(params);
     return {
       on: params.has('embed'),
+      linked: params.has('embed') && params.has('linked') && window.parent !== window,
       cta: cta && /^https?:\/\//i.test(cta) ? cta : null,
     };
   });
@@ -81,14 +83,18 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
-    const lenis = new Lenis({
-      autoRaf: false,
-      lerp: reduced ? 1 : 0.08,
-      smoothWheel: !reduced,
-      wheelMultiplier: 0.9,
-      anchors: true,
-    });
-    lenis.stop();
+    // Linked: this page doesn't scroll at all, so wheel and touch fall
+    // through to the host page, which reports its progress back
+    const lenis = embed.linked
+      ? null
+      : new Lenis({
+          autoRaf: false,
+          lerp: reduced ? 1 : 0.08,
+          smoothWheel: !reduced,
+          wheelMultiplier: 0.9,
+          anchors: true,
+        });
+    lenis?.stop();
     lenisRef.current = lenis;
 
     const measure = () => {
@@ -142,10 +148,14 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
       raf = requestAnimationFrame(loop);
       const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
-      lenis.raf(now);
-
-      const { top, range } = metrics.current;
-      const u = clamp01((lenis.animatedScroll - top) / range) * total;
+      let u: number;
+      if (lenis) {
+        lenis.raf(now);
+        const { top, range } = metrics.current;
+        u = clamp01((lenis.animatedScroll - top) / range) * total;
+      } else {
+        u = linkedRef.current * total;
+      }
       // Light extra damping smooths keyboard jumps and touch flicks
       if (uSmooth < 0 || reduced || snapRef.current) {
         uSmooth = u;
@@ -174,10 +184,29 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
     return () => {
       cancelAnimationFrame(raf);
       observer.disconnect();
-      lenis.destroy();
+      lenis?.destroy();
       lenisRef.current = null;
     };
-  }, [holds, total]);
+  }, [holds, total, embed.linked]);
+
+  // Linked mode: follow the host page's scroll progress
+  useEffect(() => {
+    if (!embed.linked) return;
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== window.parent || e.data?.type !== 'merit-tour:progress') return;
+      const p = Number(e.data.progress);
+      if (Number.isFinite(p)) linkedRef.current = clamp01(p);
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [embed.linked]);
+
+  useEffect(() => {
+    if (embed.linked && status !== 'loading') {
+      window.parent.postMessage({ type: 'merit-tour:ready' }, '*');
+      snapRef.current = true;
+    }
+  }, [embed.linked, status]);
 
   // Unlock scrolling once the scene is ready (or failed); honour deep links
   useEffect(() => {
@@ -194,6 +223,10 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
   }, [status, scenes, holds, scrollForUnits]);
 
   const goToScene = (index: number) => {
+    if (embed.linked) {
+      window.parent.postMessage({ type: 'merit-tour:goto', progress: sceneAnchor(holds, index) / total }, '*');
+      return;
+    }
     const lenis = lenisRef.current;
     if (!lenis) return;
     const target = scrollForUnits(sceneAnchor(holds, index));
@@ -246,7 +279,7 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
       <section
         ref={trackRef}
         className="tour-track"
-        style={{ height: `calc(${total * VH_PER_UNIT}vh + 100vh)` }}
+        style={{ height: embed.linked ? '100vh' : `calc(${total * VH_PER_UNIT}vh + 100vh)` }}
         aria-label={`3D tour of the ${def.name.toLowerCase()} apartment`}
       >
         <div ref={stageRef} className="tour-stage">
@@ -320,6 +353,47 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
       </section>}
     </>
   );
+}
+
+const HEX = /^[0-9a-f]{6}$/i;
+const FAMILY = /^[a-z0-9 ]{2,40}$/i;
+
+/** Host-site theme from the URL: colours as hex, fonts as Google Fonts family names */
+function applyTheme(params: URLSearchParams) {
+  const root = document.documentElement.style;
+  const hex = (name: string) => {
+    const v = params.get(name);
+    return v && HEX.test(v) ? v : null;
+  };
+  const accent = hex('accent');
+  const bg = hex('bg');
+  const text = hex('text');
+  if (accent) root.setProperty('--color-accent', `#${accent}`);
+  if (bg) {
+    root.setProperty('--color-bg', `#${bg}`);
+    root.setProperty('--color-bg-overlay', `color-mix(in srgb, #${bg} 65%, transparent)`);
+    root.setProperty('--color-glass', `color-mix(in srgb, #${bg} 40%, transparent)`);
+  }
+  if (text) {
+    root.setProperty('--color-text-primary', `#${text}`);
+    root.setProperty('--color-text-secondary', `color-mix(in srgb, #${text} 60%, transparent)`);
+    root.setProperty('--color-text-muted', `color-mix(in srgb, #${text} 35%, transparent)`);
+    root.setProperty('--color-divider', `color-mix(in srgb, #${text} 10%, transparent)`);
+    root.setProperty('--color-glass-border', `color-mix(in srgb, #${text} 8%, transparent)`);
+  }
+
+  const display = params.get('display');
+  const body = params.get('body');
+  const families = [display, body].filter((f): f is string => !!f && FAMILY.test(f));
+  if (!families.length) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?${families
+    .map((f) => `family=${f.trim().replace(/ +/g, '+')}${f === body ? ':wght@300;400;500;600' : ''}`)
+    .join('&')}&display=swap`;
+  document.head.appendChild(link);
+  if (display && FAMILY.test(display)) root.setProperty('--font-display', `'${display}', var(--font-playfair), Georgia, serif`);
+  if (body && FAMILY.test(body)) root.setProperty('--font-body', `'${body}', var(--font-inter), sans-serif`);
 }
 
 function ArrowIcon() {
