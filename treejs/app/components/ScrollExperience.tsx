@@ -239,14 +239,14 @@ export default function ScrollExperience({ slug }: { slug: UnitSlug }) {
 
   return (
     <>
-      {/* Loading screen */}
-      <div className={`loading-screen ${status !== 'loading' ? 'loaded' : ''}`} aria-hidden={status !== 'loading'}>
+      {/* Loading screen (linked embeds: the host page shows its own placeholder) */}
+      {!embed.linked && <div className={`loading-screen ${status !== 'loading' ? 'loaded' : ''}`} aria-hidden={status !== 'loading'}>
         <div className="loading-text">Merit Properties</div>
         <div className="loading-bar-container">
           <div className={`loading-bar ${status !== 'loading' ? 'is-done' : 'is-filling'}`} />
         </div>
         <div className="loading-text loading-text--small">Preparing your experience</div>
-      </div>
+      </div>}
 
       {!embed.on && <div className="brand">Merit Properties</div>}
       {!embed.on && <nav className="unit-switch" aria-label="Apartment types">
