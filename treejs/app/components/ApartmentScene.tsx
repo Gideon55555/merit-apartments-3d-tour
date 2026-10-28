@@ -68,7 +68,8 @@ function detectTier(renderer: THREE.WebGLRenderer) {
     const forced = new URLSearchParams(window.location.search).get('quality');
     if (forced) return { lowTier: forced === 'low', forced: true };
   }
-  if (safeModeEnabled()) return { lowTier: true, forced: false };
+  // ?lite=1: the host page saw a slow connection, so go light from the start
+  if (safeModeEnabled() || new URLSearchParams(window.location.search).has('lite')) return { lowTier: true, forced: false };
   const coarse = window.matchMedia('(pointer: coarse)').matches;
   const small = Math.min(window.screen.width, window.screen.height) < 700;
   const cores = navigator.hardwareConcurrency ?? 4;

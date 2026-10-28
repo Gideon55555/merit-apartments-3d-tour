@@ -527,7 +527,7 @@ export const PLANT_MODEL = '/models/potted-plant.glb';
 
 /** Potted plant with plan symbol and contact shadow. Larger floor plants use the scanned model. */
 export function plant(kit: Kit, p: Parent, x: number, z: number, kind: 'fiddle' | 'bush' | 'snake', h: number, seed: number, pot?: THREE.Material, y = 0) {
-  if (kind !== 'snake' && y === 0 && h >= 0.55) kit.model(p, PLANT_MODEL, x, 0, z, h * 1.1, seed);
+  if (kind !== 'snake' && y === 0 && h >= 0.55 && !kit.lite) kit.model(p, PLANT_MODEL, x, 0, z, h * 1.1, seed);
   else kit.plant(p, x, y, z, kind, h, seed, pot);
   const r = kind === 'fiddle' ? 0.3 : kind === 'snake' ? 0.17 : Math.max(0.14, h * 0.42);
   kit.planPlant(x, z, r);

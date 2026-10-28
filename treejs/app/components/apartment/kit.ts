@@ -197,6 +197,8 @@ export class Kit {
 
   /** Called when an async asset (glTF model) lands, so the scene redraws and re-shadows */
   onAsync: () => void = () => undefined;
+  /** ?lite=1 (slow connections): skip the optional glTF downloads */
+  readonly lite = new URLSearchParams(window.location.search).has('lite');
   private models = new Map<string, Promise<THREE.Object3D>>();
   private loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 
@@ -205,6 +207,7 @@ export class Kit {
    * scaled to the given height. It appears when loaded.
    */
   model(parent: THREE.Object3D, url: string, x: number, y: number, z: number, height: number, rotY = 0) {
+    if (this.lite) return;
     let pending = this.models.get(url);
     if (!pending) {
       // Fetch after the first frames so it never competes with the initial load
